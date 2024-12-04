@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "TestINFINIT": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
