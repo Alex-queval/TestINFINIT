@@ -1,4 +1,5 @@
-﻿using Infrastructure.Services.GitHub;
+﻿using Infrastructure.Services.FileFilter;
+using Infrastructure.Services.GitHub;
 using Infrastructure.Services.MainServices;
 using Infrastructure.Services.Output;
 using Infrastructure.Services.Statistics;
@@ -35,6 +36,11 @@ namespace TestINFINIT
                 {
                     services.Configure<RepositoryToSearchConfig>(context.Configuration.GetSection("RepositoryToSearchConfig"));
                     services.Configure<GitHubConnectionConfigs>(context.Configuration.GetSection("GitHubConnectionConfigs"));
+
+                    services.AddTransient<IFileFilterStrategy, JsFileFilter>();
+                    services.AddTransient<IFileFilterStrategy, TsFileFilter>();
+                    services.AddTransient<CompositeFileFilter>();
+
                     services.AddTransient<IMainService, MainService>();
                     services.AddTransient<IGitHubServices, OctokitServices>();
                     services.AddTransient<IStatisticServices, StatisticsServices>();

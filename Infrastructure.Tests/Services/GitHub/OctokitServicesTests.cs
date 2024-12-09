@@ -1,3 +1,4 @@
+using Infrastructure.Services.FileFilter;
 using Infrastructure.Services.GitHub;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -15,6 +16,7 @@ namespace Infrastructure.Tests.Services.GitHub
         private readonly Mock<IServiceProvider> _ServiceProviderMock = new();
         private readonly Mock<ILogger<OctokitServices>> _LoggerMock = new();
         private readonly Mock<IOptionsMonitor<GitHubConnectionConfigs>> _GitHubConfigsMock = new();
+        private readonly Mock<IFileFilterStrategy> _FileFilterStrategy = new();
 
         private readonly RepositoryInfo _RepositoryInfo = new("test", "test")
         {
@@ -79,6 +81,23 @@ namespace Infrastructure.Tests.Services.GitHub
             _ServiceProviderMock
                 .Setup(x => x.GetService(typeof(IOptionsMonitor<GitHubConnectionConfigs>)))
                 .Returns(_GitHubConfigsMock.Object)
+                .Verifiable();
+
+            _ServiceProviderMock
+                .Setup(x => x.GetService(typeof(IFileFilterStrategy)))
+                .Returns(_FileFilterStrategy.Object)
+                .Verifiable();
+
+            var compositeStrategy = new CompositeFileFilter([_FileFilterStrategy.Object]);
+
+            _ServiceProviderMock
+                 .Setup(x => x.GetService(typeof(CompositeFileFilter)))
+                 .Returns(compositeStrategy)
+                 .Verifiable();
+
+            _FileFilterStrategy
+                .Setup(x => x.Match(It.IsAny<string>()))
+                .Returns(true)
                 .Verifiable();
         }
 

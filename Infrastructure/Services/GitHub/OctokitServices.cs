@@ -1,4 +1,5 @@
 ﻿using Infrastructure.Guards;
+using Infrastructure.Services.FileFilter;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,7 @@ namespace Infrastructure.Services.GitHub
     {
         private readonly ILogger<OctokitServices> _Logger;
         private readonly IOptionsMonitor<GitHubConnectionConfigs> _GitHubConfigs;
+        private readonly IFileFilterStrategy _FileFilterStrategy;
 
         private GitHubClient _Client { get; set; }
 
@@ -27,6 +29,7 @@ namespace Infrastructure.Services.GitHub
             Guard.ArgumentNotNull(provider, nameof(provider));
             _Logger = provider.GetRequiredService<ILogger<OctokitServices>>();
             _GitHubConfigs = provider.GetRequiredService<IOptionsMonitor<GitHubConnectionConfigs>>();
+            _FileFilterStrategy = provider.GetRequiredService<CompositeFileFilter>();
 
             var currentValue = _GitHubConfigs.CurrentValue;
             _Client = CreateClient(currentValue.Token);
@@ -123,10 +126,7 @@ namespace Infrastructure.Services.GitHub
                 {
                     if (content.Type == ContentType.File)
                     {
-                        if (content.Name.EndsWith(".js", StringComparison.OrdinalIgnoreCase) ||
-                            content.Name.EndsWith(".ts", StringComparison.OrdinalIgnoreCase) ||
-                            content.Name.EndsWith(".jsx", StringComparison.OrdinalIgnoreCase) ||
-                            content.Name.EndsWith(".tsx", StringComparison.OrdinalIgnoreCase))
+                        if (_FileFilterStrategy.Match(content.Name))
                         {
                             jsFileInfos.Add(new JsFileInfo(content.Name, content.DownloadUrl));
                         }

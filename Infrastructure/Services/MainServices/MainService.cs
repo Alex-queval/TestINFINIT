@@ -6,15 +6,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Models.Configurations;
+using Models.Data;
 
 namespace Infrastructure.Services.MainServices
 {
     /// <summary>
-    /// Represents a marker interface for the main service.
+    /// Represents the main service.
     /// </summary>
-    public sealed class MainService : IMainService
+    public class MainService : MainServiceTemplate
     {
-        private readonly ILogger<MainService> _logger;
         private readonly IOptionsMonitor<RepositoryToSearchConfig> _Options;
         private readonly IGitHubServices _GitHubServices;
         private readonly IStatisticServices _StatisticsServices;
@@ -23,41 +23,37 @@ namespace Infrastructure.Services.MainServices
         /// <summary>
         /// Initialize a new instance of <see cref="MainService"/>
         /// </summary>
-        public MainService(IServiceProvider provider)
+        public MainService(IServiceProvider provider) : base(provider.GetRequiredService<ILogger<MainService>>())
         {
             Guard.ArgumentNotNull(provider, nameof(provider));
 
-            _logger = provider.GetRequiredService<ILogger<MainService>>();
             _Options = provider.GetRequiredService<IOptionsMonitor<RepositoryToSearchConfig>>();
             _GitHubServices = provider.GetRequiredService<IGitHubServices>();
             _StatisticsServices = provider.GetRequiredService<IStatisticServices>();
             _OutputServices = provider.GetRequiredService<IOutputServices>();
         }
 
-        public void Dispose() => GC.SuppressFinalize(this);
-
-        public async Task Execute()
+        protected override async Task<RepositoryInfo?> RetrieveRepository()
         {
-            try
-            {
-                var repositoryToSearch = _Options.CurrentValue;
+            var repositoryToSearch = _Options.CurrentValue;
+            return await _GitHubServices.TryGetRepository(repositoryToSearch.Owner, repositoryToSearch.RepositoryName);
+        }
 
-                var repository = await _GitHubServices.TryGetRepository(repositoryToSearch.Owner, repositoryToSearch.RepositoryName);
+        protected override async Task CollectData(RepositoryInfo repositoryInfo)
+        {
+            await _GitHubServices.GetJsFileInfos(repositoryInfo);
+            await _GitHubServices.DonwloadFilesContents(repositoryInfo);
+        }
 
-                if (repository is not null)
-                {
-                    await _GitHubServices.GetJsFileInfos(repository);
-                    await _GitHubServices.DonwloadFilesContents(repository);
-                    _StatisticsServices.CountWordsForEachFile(repository);
-                    _StatisticsServices.CountWordForRepository(repository);
-                    _OutputServices.Output(repository);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"An unexcpected error as occured: {ex.Message}");
-                throw;
-            }
+        protected override void ProcessData(RepositoryInfo repositoryInfo)
+        {
+            _StatisticsServices.CountWordsForEachFile(repositoryInfo);
+            _StatisticsServices.CountWordForRepository(repositoryInfo);
+        }
+
+        protected override void OutputResults(RepositoryInfo repositoryInfo)
+        {
+            _OutputServices.Output(repositoryInfo);
         }
     }
 }

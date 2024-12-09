@@ -1,21 +1,11 @@
-using Infrastructure.Services.GitHub;
 using Infrastructure.Services.Statistics;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Models.Configurations;
 using Models.Data;
-using Moq;
-using Octokit;
 
 namespace Infrastructure.Tests.Services.Statistics
 {
     public sealed class StatisticsServicesTests : IDisposable
     {
         public void Dispose() => GC.SuppressFinalize(this);
-
-        private readonly Mock<IServiceProvider> _ServiceProviderMock = new();
-        private readonly Mock<ILogger<OctokitServices>> _LoggerMock = new();
-        private readonly Mock<IOptionsMonitor<GitHubConnectionConfigs>> _GitHubConfigsMock = new();
 
         private readonly RepositoryInfo _RepositoryInfo = new("test", "test")
         {
